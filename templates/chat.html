@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>SupportGenie AI</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- ================= Sidebar ================= -->
+
+    <div class="sidebar">
+
+        <h2>🤖 SupportGenie AI</h2>
+
+        <p>AI Customer Support</p>
+
+        <hr>
+
+        <button id="newChatBtn">+ New Chat</button>
+
+    </div>
+
+    <!-- ================= Main Area ================= -->
+
+    <div class="chat-container">
+
+        <!-- Header -->
+
+        <div class="chat-header">
+
+            <div class="header-left">
+
+                <div class="bot-avatar">
+                    🤖
+                </div>
+
+                <div>
+
+                    <h2>SupportGenie AI</h2>
+
+                    <span class="status">
+                        ● Online
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="header-right">
+
+                <a href="/dashboard" class="header-btn">
+                    Dashboard
+                </a>
+
+                <a href="/history" class="header-btn">
+                    History
+                </a>
+
+                <a href="/logout" class="header-btn logout">
+                    Logout
+                </a>
+
+            </div>
+
+        </div>
+
+        <!-- Chat Messages -->
+
+        <div class="chat-box" id="chatBox">
+
+            <div class="bot-message-container">
+
+                <div class="avatar">
+                    🤖
+                </div>
+
+                <div class="bot-message">
+
+                    👋 Hello!
+
+                    <br><br>
+
+                    How can I help you today?
+
+                    <div class="timestamp">
+                        09:00 AM
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Input Area -->
+
+        <div class="input-area">
+
+            <input
+                type="text"
+                id="message"
+                placeholder="Type your message...">
+
+            <button id="sendBtn">
+                Send
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+
+</body>
+
+</html>

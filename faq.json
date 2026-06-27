@@ -1,0 +1,36 @@
+{
+    "greeting": {
+        "title": "Greeting",
+        "response": "Hello! 👋 Welcome to SupportGenie AI. How may I assist you today?"
+    },
+
+    "refund": {
+        "title": "Refund Policy",
+        "response": "Our refund policy allows refunds within 7 days of purchase. The amount will be credited to your original payment method within 5-7 business days after approval."
+    },
+
+    "payment": {
+        "title": "Payment Support",
+        "response": "Please verify your payment details. If the payment has been deducted but the order was not placed, our support team will assist you."
+    },
+
+    "order_status": {
+        "title": "Order Tracking",
+        "response": "Your order is currently being processed. You can also track your order using the tracking ID available in your Orders section."
+    },
+
+    "delivery": {
+        "title": "Delivery Information",
+        "response": "Standard delivery takes 3-5 business days. Express delivery usually arrives within 1-2 business days."
+    },
+
+    "cancellation": {
+        "title": "Order Cancellation",
+        "response": "You can cancel your order before it has been shipped. Once shipped, you may initiate a return after delivery."
+    },
+
+    "unknown": {
+        "title": "Unknown Query",
+        "response": "I'm sorry, I couldn't understand your request. Could you please rephrase it? If needed, I'll connect you with our AI assistant."
+    }
+}
