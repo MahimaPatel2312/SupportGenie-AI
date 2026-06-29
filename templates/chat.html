@@ -1,43 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SupportGenie AI</title>
 
     <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
 
 <div class="container">
 
-    <!-- ================= Sidebar ================= -->
+    <!-- Sidebar -->
 
     <div class="sidebar">
 
-        <h2>🤖 SupportGenie AI</h2>
+        <div>
 
-        <p>AI Customer Support</p>
+            <div class="logo">
+                <h2>🤖 SupportGenie AI</h2>
+                <p>AI Customer Support</p>
+            </div>
 
-        <hr>
+            <button class="new-chat" id="newChatBtn">
+                + New Chat
+            </button>
 
-        <button id="newChatBtn">+ New Chat</button>
+            <input
+                type="text"
+                id="searchChat"
+                class="search-box"
+                placeholder="Search chats...">
+
+            <div
+                id="conversationList"
+                class="conversation-list">
+
+            </div>
+
+        </div>
+
+        <div class="sidebar-bottom">
+
+            <a href="/dashboard">
+                📊 Dashboard
+            </a>
+
+            <a href="/logout">
+                🚪 Logout
+            </a>
+
+        </div>
 
     </div>
 
-    <!-- ================= Main Area ================= -->
+    <!-- Chat Area -->
 
-    <div class="chat-container">
-
-        <!-- Header -->
+    <div class="chat-area">
 
         <div class="chat-header">
 
@@ -48,40 +73,21 @@
                 </div>
 
                 <div>
-
                     <h2>SupportGenie AI</h2>
-
-                    <span class="status">
+                    <span style="color:#10a37f">
                         ● Online
                     </span>
-
                 </div>
-
-            </div>
-
-            <div class="header-right">
-
-                <a href="/dashboard" class="header-btn">
-                    Dashboard
-                </a>
-
-                <a href="/history" class="header-btn">
-                    History
-                </a>
-
-                <a href="/logout" class="header-btn logout">
-                    Logout
-                </a>
 
             </div>
 
         </div>
 
-        <!-- Chat Messages -->
+        <div
+            id="chatBox"
+            class="chat-box">
 
-        <div class="chat-box" id="chatBox">
-
-            <div class="bot-message-container">
+            <div class="bot-row">
 
                 <div class="avatar">
                     🤖
@@ -89,15 +95,11 @@
 
                 <div class="bot-message">
 
-                    👋 Hello!
+                    Hello 👋 <br><br>
 
-                    <br><br>
+                    I am SupportGenie AI.<br>
 
-                    How can I help you today?
-
-                    <div class="timestamp">
-                        09:00 AM
-                    </div>
+                    Ask me anything about your product or service.
 
                 </div>
 
@@ -105,17 +107,25 @@
 
         </div>
 
-        <!-- Input Area -->
+        <div
+            id="typingIndicator"
+            class="typing">
+
+            🤖 SupportGenie is typing...
+
+        </div>
 
         <div class="input-area">
 
             <input
-                type="text"
                 id="message"
-                placeholder="Type your message...">
+                type="text"
+                placeholder="Ask anything...">
 
             <button id="sendBtn">
+
                 Send
+
             </button>
 
         </div>
@@ -124,8 +134,8 @@
 
 </div>
 
+<script src="{{ url_for('static', filename='js/marked.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
 
 </body>
-
 </html>

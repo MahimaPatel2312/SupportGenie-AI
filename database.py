@@ -135,16 +135,16 @@ def save_message(
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     cursor.execute("""
-    INSERT INTO messages
-    (
-        conversation_id,
-        sender,
-        message,
-        intent,
-        source,
-        timestamp
-    )
-    VALUES(?,?,?,?,?,?)
+        INSERT INTO messages
+        (
+            conversation_id,
+            sender,
+            message,
+            intent,
+            source,
+            timestamp
+        )
+        VALUES(?,?,?,?,?,?)
     """,
     (
         conversation_id,
@@ -155,15 +155,41 @@ def save_message(
         now
     ))
 
+    # Update conversation time
     cursor.execute("""
-    UPDATE conversations
-    SET updated_at=?
-    WHERE id=?
+        UPDATE conversations
+        SET updated_at=?
+        WHERE id=?
     """,
     (
         now,
         conversation_id
     ))
+
+    # ---------- NEW ----------
+    # If this is the first user message,
+    # use it as the conversation title.
+
+    if sender == "user":
+
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM messages
+            WHERE conversation_id=?
+              AND sender='user'
+        """, (conversation_id,))
+
+        count = cursor.fetchone()[0]
+
+        if count == 1:
+
+            title = message[:40]
+
+            cursor.execute("""
+                UPDATE conversations
+                SET title=?
+                WHERE id=?
+            """, (title, conversation_id))
 
     conn.commit()
     conn.close()
@@ -262,3 +288,22 @@ def get_dashboard_stats(user_id):
         "conversations": total_conversations,
         "messages": total_messages
     }
+
+def get_recent_messages(conversation_id, limit=10):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT sender, message
+        FROM messages
+        WHERE conversation_id = ?
+        ORDER BY id DESC
+        LIMIT ?
+    """, (conversation_id, limit))
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return list(reversed(rows))

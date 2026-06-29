@@ -9,6 +9,7 @@ from flask import (
 
 from intents import detect_intent
 from faq import get_response
+from gemini_service import get_ai_response
 
 from database import (
     create_database,
@@ -16,24 +17,20 @@ from database import (
     save_message,
     get_conversations,
     get_messages,
+    get_recent_messages,
     get_dashboard_stats
 )
 
-from auth import (
-    register_user,
-    login_user
-)
+from auth import register_user, login_user
 
 # ----------------------------------------
-# Flask Configuration
+# Flask Setup
 # ----------------------------------------
 
 app = Flask(__name__)
-
 app.secret_key = "supportgenie_secret_key"
 
 create_database()
-
 
 # ----------------------------------------
 # Home
@@ -41,7 +38,6 @@ create_database()
 
 @app.route("/")
 def home():
-
     if "user_id" not in session:
         return redirect("/login")
 
@@ -50,14 +46,12 @@ def home():
         username=session["user_name"]
     )
 
-
 # ----------------------------------------
 # Register
 # ----------------------------------------
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-
     if request.method == "GET":
         return render_template("register.html")
 
@@ -65,20 +59,12 @@ def register():
     email = request.form["email"]
     password = request.form["password"]
 
-    success, message = register_user(
-        name,
-        email,
-        password
-    )
+    success, message = register_user(name, email, password)
 
     if success:
         return redirect("/login")
 
-    return render_template(
-        "register.html",
-        message=message
-    )
-
+    return render_template("register.html", message=message)
 
 # ----------------------------------------
 # Login
@@ -86,30 +72,23 @@ def register():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-
     if request.method == "GET":
         return render_template("login.html")
 
     email = request.form["email"]
     password = request.form["password"]
 
-    user = login_user(
-        email,
-        password
-    )
+    user = login_user(email, password)
 
     if user:
-
         session["user_id"] = user["id"]
         session["user_name"] = user["name"]
 
+        session.pop("conversation_id", None)
+
         return redirect("/")
 
-    return render_template(
-        "login.html",
-        message="Invalid Email or Password"
-    )
-
+    return render_template("login.html", message="Invalid Email or Password")
 
 # ----------------------------------------
 # Logout
@@ -117,157 +96,147 @@ def login():
 
 @app.route("/logout")
 def logout():
-
     session.clear()
-
     return redirect("/login")
 
-
 # ----------------------------------------
-# Chat API
+# CHAT API (MAIN FIXED LOGIC)
 # ----------------------------------------
 
 @app.route("/chat", methods=["POST"])
 def chat():
 
     if "user_id" not in session:
-
         return jsonify({
-
-            "response": "Please login."
-
+            "response": "Please login first."
         }), 401
 
     data = request.get_json()
-
     message = data.get("message", "").strip()
 
-    if message == "":
-
+    if not message:
         return jsonify({
-
             "response": "Please enter a message."
-
         })
 
-    # --------------------------
-    # Create Conversation
-    # --------------------------
+    # ----------------------------
+    # Create conversation if needed
+    # ----------------------------
 
-    if "conversation_id" not in session:
+    conversation_id = session.get("conversation_id")
 
+    if conversation_id is None:
         conversation_id = create_conversation(
-            session["user_id"]
+            session["user_id"],
+            title="New Chat"
         )
-
         session["conversation_id"] = conversation_id
 
-    conversation_id = session["conversation_id"]
-
+    # ----------------------------
     # Save user message
+    # ----------------------------
 
     save_message(
-
         conversation_id,
-
         "user",
-
         message
-
     )
 
+    # ----------------------------
     # Detect intent
+    # ----------------------------
 
     intent = detect_intent(message)
 
-    # FAQ reply
+    print("\n==============================")
+    print("USER MESSAGE :", message)
+    print("DETECTED INTENT :", intent)
+
+    # ----------------------------
+    # FAQ
+    # ----------------------------
 
     reply = get_response(intent)
 
+    print("FAQ RESPONSE :", reply)
+
+    source = "FAQ"
+
+    # ----------------------------
+    # Gemini fallback
+    # ----------------------------
+
+    if reply is None:
+
+        print("Calling Gemini...")
+
+        history = get_recent_messages(conversation_id, limit=10)
+
+        reply = get_ai_response(
+            user_message=message,
+            history=history
+        )
+
+        source = "Gemini"
+
+        if intent == "unknown":
+            intent = "AI"
+
+    print("FINAL RESPONSE :", reply)
+    print("==============================\n")
+
+    # ----------------------------
     # Save bot reply
+    # ----------------------------
 
     save_message(
-
         conversation_id,
-
         "bot",
-
         reply,
-
         intent,
-
-        "FAQ"
-
+        source
     )
 
     return jsonify({
-
         "response": reply,
-
-        "intent": intent
-
+        "intent": intent,
+        "source": source
     })
 
-
 # ----------------------------------------
-# New Conversation
+# New Chat
 # ----------------------------------------
 
 @app.route("/new_chat")
 def new_chat():
 
     if "user_id" not in session:
-
         return redirect("/login")
 
-    conversation_id = create_conversation(
+    session["conversation_id"] = create_conversation(session["user_id"])
 
-        session["user_id"]
-
-    )
-
-    session["conversation_id"] = conversation_id
-
-    return jsonify({
-
-        "success": True
-
-    })
-
+    return jsonify({"success": True})
 
 # ----------------------------------------
-# Conversation List
+# Conversations
 # ----------------------------------------
 
 @app.route("/conversations")
 def conversations():
 
     if "user_id" not in session:
-
         return jsonify([])
 
-    chats = get_conversations(
+    chats = get_conversations(session["user_id"])
 
-        session["user_id"]
-
-    )
-
-    result = []
-
-    for chat in chats:
-
-        result.append({
-
-            "id": chat["id"],
-
-            "title": chat["title"],
-
-            "updated_at": chat["updated_at"]
-
-        })
-
-    return jsonify(result)
-
+    return jsonify([
+        {
+            "id": c["id"],
+            "title": c["title"] or "New Chat",
+            "updated_at": c["updated_at"]
+        }
+        for c in chats
+    ])
 
 # ----------------------------------------
 # Load Messages
@@ -276,24 +245,21 @@ def conversations():
 @app.route("/messages/<int:conversation_id>")
 def messages(conversation_id):
 
+    if "user_id" not in session:
+        return jsonify([])
+
     rows = get_messages(conversation_id)
 
-    result = []
+    session["conversation_id"] = conversation_id
 
-    for row in rows:
-
-        result.append({
-
-            "sender": row["sender"],
-
-            "message": row["message"],
-
-            "timestamp": row["timestamp"]
-
-        })
-
-    return jsonify(result)
-
+    return jsonify([
+        {
+            "sender": r["sender"],
+            "message": r["message"],
+            "timestamp": r["timestamp"]
+        }
+        for r in rows
+    ])
 
 # ----------------------------------------
 # Dashboard
@@ -303,30 +269,19 @@ def messages(conversation_id):
 def dashboard():
 
     if "user_id" not in session:
-
         return redirect("/login")
 
-    stats = get_dashboard_stats(
-
-        session["user_id"]
-
-    )
+    stats = get_dashboard_stats(session["user_id"])
 
     return render_template(
-
         "dashboard.html",
-
         username=session["user_name"],
-
         stats=stats
-
     )
 
-
 # ----------------------------------------
-# Run
+# Run Server
 # ----------------------------------------
 
 if __name__ == "__main__":
-
     app.run(debug=True)

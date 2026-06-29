@@ -1,219 +1,249 @@
 const chatBox = document.getElementById("chatBox");
-const sendBtn = document.getElementById("sendBtn");
 const messageInput = document.getElementById("message");
+const sendBtn = document.getElementById("sendBtn");
+const typingIndicator = document.getElementById("typingIndicator");
 const newChatBtn = document.getElementById("newChatBtn");
+const conversationList = document.getElementById("conversationList");
+const searchBox = document.getElementById("searchChat");
 
-sendBtn.addEventListener("click", sendMessage);
+// ---------------------------
+// Add Message
+// ---------------------------
 
-messageInput.addEventListener("keypress", function(event){
-    if(event.key==="Enter"){
-        sendMessage();
+function addMessage(sender, message) {
+
+    const row = document.createElement("div");
+
+    if (sender === "user") {
+
+        row.className = "user-row";
+
+        row.innerHTML = `
+            <div class="user-message">
+                ${message}
+            </div>
+
+            <div class="avatar">👤</div>
+        `;
+
     }
-});
 
-newChatBtn.addEventListener("click", newChat);
+    else {
 
-function getCurrentTime(){
+        row.className = "bot-row";
 
-    return new Date().toLocaleTimeString([],{
-        hour:"2-digit",
-        minute:"2-digit"
+        row.innerHTML = `
+            <div class="avatar">🤖</div>
+
+            <div class="bot-message">
+                ${marked.parse(message)}
+            </div>
+        `;
+
+    }
+
+    chatBox.appendChild(row);
+
+    // Highlight code blocks
+    document.querySelectorAll("pre code").forEach((block) => {
+        hljs.highlightElement(block);
     });
 
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-async function sendMessage(){
+// ---------------------------
+// Send Message
+// ---------------------------
+
+async function sendMessage() {
 
     const message = messageInput.value.trim();
 
-    if(message==="") return;
+    if (message === "") return;
 
-    addUserMessage(message);
+    addMessage("user", message);
 
-    messageInput.value="";
+    messageInput.value = "";
 
-    showTyping();
+    typingIndicator.style.display = "block";
 
-    try{
+    chatBox.scrollTop = chatBox.scrollHeight;
 
-        const response = await fetch("/chat",{
+    try {
 
-            method:"POST",
+        const response = await fetch("/chat", {
 
-            headers:{
-                "Content-Type":"application/json"
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
             },
 
-            body:JSON.stringify({
-                message:message
+            body: JSON.stringify({
+                message: message
             })
 
         });
 
         const data = await response.json();
 
-        removeTyping();
+        // Simulate AI thinking
+        setTimeout(() => {
 
-        addBotMessage(data.response);
+            typingIndicator.style.display = "none";
 
-    }
+            addMessage("bot", data.response);
 
-    catch(error){
+            loadConversations();
 
-        removeTyping();
-
-        addBotMessage("❌ Unable to connect to server.");
-
-        console.error(error);
+        }, 800);
 
     }
 
-}
+    catch (error) {
 
-function addUserMessage(message){
+        typingIndicator.style.display = "none";
 
-    const userContainer=document.createElement("div");
-
-    userContainer.className="user-message-container";
-
-    userContainer.innerHTML=`
-
-        <div class="user-message">
-
-            ${message}
-
-            <div class="timestamp">
-
-                ${getCurrentTime()}
-
-            </div>
-
-        </div>
-
-        <div class="avatar user-avatar">
-
-            👤
-
-        </div>
-
-    `;
-
-    chatBox.appendChild(userContainer);
-
-    chatBox.scrollTop=chatBox.scrollHeight;
-
-}
-
-function showTyping(){
-
-    const typing=document.createElement("div");
-
-    typing.className="bot-message-container";
-
-    typing.id="typing";
-
-    typing.innerHTML=`
-
-        <div class="avatar">
-
-            🤖
-
-        </div>
-
-        <div class="typing">
-
-            <div class="dot"></div>
-
-            <div class="dot"></div>
-
-            <div class="dot"></div>
-
-        </div>
-
-    `;
-
-    chatBox.appendChild(typing);
-
-    chatBox.scrollTop=chatBox.scrollHeight;
-
-}
-
-function removeTyping(){
-
-    const typing=document.getElementById("typing");
-
-    if(typing){
-
-        typing.remove();
+        addMessage(
+            "bot",
+            "❌ Unable to connect to server."
+        );
 
     }
 
 }
 
-function addBotMessage(message){
+// ---------------------------
+// New Chat
+// ---------------------------
 
-    const botContainer=document.createElement("div");
+newChatBtn.onclick = async function () {
 
-    botContainer.className="bot-message-container";
+    await fetch("/new_chat");
 
-    botContainer.innerHTML=`
+    chatBox.innerHTML = "";
 
-        <div class="avatar">
+    addMessage(
+        "bot",
+        "Hello 👋<br><br>How may I help you today?"
+    );
 
-            🤖
+    loadConversations();
 
-        </div>
+};
 
-        <div class="bot-message">
+// ---------------------------
+// Load Conversations
+// ---------------------------
 
-            ${message}
+async function loadConversations() {
 
-            <div class="timestamp">
+    try {
 
-                ${getCurrentTime()}
+        const response = await fetch("/conversations");
 
-            </div>
+        const chats = await response.json();
 
-        </div>
+        conversationList.innerHTML = "";
 
-    `;
+        chats.forEach(chat => {
 
-    chatBox.appendChild(botContainer);
+            const div = document.createElement("div");
 
-    chatBox.scrollTop=chatBox.scrollHeight;
+            div.className = "chat-item";
+
+            div.innerHTML = chat.title || "New Chat";
+
+            div.onclick = function () {
+
+                loadMessages(chat.id);
+
+            };
+
+            conversationList.appendChild(div);
+
+        });
+
+    }
+
+    catch(err){
+
+        console.log(err);
+
+    }
+
+}
+
+// ---------------------------
+// Load Messages
+// ---------------------------
+
+async function loadMessages(id){
+
+    const response = await fetch("/messages/" + id);
+
+    const messages = await response.json();
+
+    chatBox.innerHTML = "";
+
+    messages.forEach(msg=>{
+
+        addMessage(
+            msg.sender,
+            msg.message
+        );
+
+    });
 
 }
 
-function newChat(){
+// ---------------------------
+// Search Chats
+// ---------------------------
 
-    chatBox.innerHTML=`
+searchBox.addEventListener("keyup",function(){
 
-        <div class="bot-message-container">
+    const value=this.value.toLowerCase();
 
-            <div class="avatar">
+    const chats=document.querySelectorAll(".chat-item");
 
-                🤖
+    chats.forEach(chat=>{
 
-            </div>
+        if(chat.innerText.toLowerCase().includes(value)){
 
-            <div class="bot-message">
+            chat.style.display="block";
 
-                👋 Hello!
+        }
 
-                <br><br>
+        else{
 
-                How can I help you today?
+            chat.style.display="none";
 
-                <div class="timestamp">
+        }
 
-                    ${getCurrentTime()}
+    });
 
-                </div>
+});
 
-            </div>
+// ---------------------------
+// Events
+// ---------------------------
 
-        </div>
+sendBtn.onclick = sendMessage;
 
-    `;
+messageInput.addEventListener("keypress", function(e){
 
-}
+    if(e.key==="Enter"){
+
+        sendMessage();
+
+    }
+
+});
+
+// ---------------------------
+// Initial Load
+// ---------------------------
+
+loadConversations();
